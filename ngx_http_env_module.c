@@ -30,11 +30,19 @@ static char * ngx_http_env_init_main_conf(ngx_conf_t *cf, void *conf) {
 }
 
 char * ngx_http_deployment_env(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
-    char *p = conf;
+    ngx_http_env_main_conf_t *emcf = conf;
 
-    ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "value: %c%c%c", p[0], p[1], p[2]);
-    ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "set deployment_env");
-    return NGX_CONF_OK;
+    ngx_str_t *value;
+
+    value = cf->args->elts;
+    if (cf->args->nelts == 2) {
+        ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "value: %V %V", value, value+1);
+        ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "set deployment_env");
+        emcf->deployment_env.len = (value+1)->len;
+        emcf->deployment_env.data = (value+1)->data;
+        return NGX_CONF_OK;
+    }
+    return NGX_CONF_ERROR;
 }
 
 static ngx_command_t ngx_http_env_commands[] = {
