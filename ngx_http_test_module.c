@@ -6,14 +6,14 @@
  * TODO: 声明 NGX 适配的环境 stg, prt, pre, pro 
  */
 char * ngx_http_env_declaration(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
-
+    return NGX_CONF_OK;
 }
 
 /**
  * TODO: 声明 NGX 需要改写的 Cookie Names 
  */
 char * ngx_http_env_rewrite_cookie(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
-
+    return NGX_CONF_OK;
 }
 
 /**
@@ -21,6 +21,11 @@ char * ngx_http_env_rewrite_cookie(ngx_conf_t *cf, ngx_command_t *cmd, void *con
  */
 ngx_int_t ngx_http_env_handler(ngx_http_request_t *r) {
 
+    ngx_log_t *log;
+
+    log = r->connection->log;
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "Success: invoke http env module");
+    return NGX_OK;
 }
 
 static ngx_int_t ngx_http_env_init(ngx_conf_t *cf) {
@@ -62,11 +67,11 @@ static ngx_http_module_t ngx_http_env_module_ctx = {
     NULL,                           /* create server configuration */
     NULL,                           /* merge server configuration */
 
-    ngx_http_hello_create_loc_conf, /* create location configuration */
+    NULL,                           /* create location configuration */
     NULL                            /* merge location configuration */
 };
 
-static ngx_module_t ngx_http_env_module = {
+ngx_module_t ngx_http_env_module = {
     NGX_MODULE_V1,
     &ngx_http_env_module_ctx,       /* module context */
     ngx_http_env_commands,          /* module directives */
