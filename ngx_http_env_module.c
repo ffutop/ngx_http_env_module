@@ -37,15 +37,20 @@ static ngx_command_t ngx_http_env_commands[] = {
 static ngx_int_t ngx_http_env_handler(ngx_http_request_t *r) {
 
     /* TODO: */
-
+    ngx_conf_log_error(NGX_LOG_INFO, cf, 0, "env handler");
     return NGX_OK;
 }
 
 static ngx_int_t ngx_http_env_pre_conf(ngx_conf_t *cf) {
-    ngx_http_core_loc_conf_t *clcf;
+    ngx_http_core_main_conf_t *cmcf;
+    ngx_http_phase_handler_pt *h;
 
-    clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
-    clcf->handler = ngx_http_env_handler;
+    cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_moduel);
+    h = ngx_array_push(&cmcf->phases[NGX_HTTP_CONTENT_PHASE].handlers);
+    if (h == NULL) {
+        return NGX_ERROR;
+    }
+    *h = ngx_http_env_handler;
     return NGX_OK;
 }
 
