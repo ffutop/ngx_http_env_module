@@ -3,7 +3,7 @@
 #include <ngx_http.h>
 
 typedef struct {
-    ngx_str_t *deployment_env;
+    ngx_str_t deployment_env;
 } ngx_http_env_srv_conf_t;
 
 static void * ngx_http_env_create_srv_conf(ngx_conf_t *cf) {
@@ -19,7 +19,7 @@ static void * ngx_http_env_create_srv_conf(ngx_conf_t *cf) {
 static char * ngx_http_env_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child) {
     ngx_http_env_srv_conf_t *prev = parent;
     ngx_http_env_srv_conf_t *conf = child;
-    ngx_conf_merge_str_value(conf->deployment_env, conf->deployment_env, "");
+    ngx_conf_merge_str_value(conf->deployment_env, prev->deployment_env, "");
     ngx_conf_log_error(NGX_LOG_INFO, cf, 0, "merge srv conf");
     return NGX_CONF_OK;
 }
@@ -34,18 +34,17 @@ static ngx_command_t ngx_http_env_commands[] = {
     ngx_null_command
 };
 
-static ngx_int_t ngx_http_env_handler(ngx_http_request_t *r) {
+ngx_int_t ngx_http_env_handler(ngx_http_request_t *r) {
 
     /* TODO: */
-    ngx_conf_log_error(NGX_LOG_INFO, cf, 0, "env handler");
     return NGX_OK;
 }
 
-static ngx_int_t ngx_http_env_pre_conf(ngx_conf_t *cf) {
+static ngx_int_t ngx_http_env_post_conf(ngx_conf_t *cf) {
     ngx_http_core_main_conf_t *cmcf;
-    ngx_http_phase_handler_pt *h;
+    ngx_http_handler_pt *h;
 
-    cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_moduel);
+    cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
     h = ngx_array_push(&cmcf->phases[NGX_HTTP_CONTENT_PHASE].handlers);
     if (h == NULL) {
         return NGX_ERROR;
@@ -55,8 +54,8 @@ static ngx_int_t ngx_http_env_pre_conf(ngx_conf_t *cf) {
 }
 
 static ngx_http_module_t ngx_http_env_module_ctx = {
-    ngx_http_env_pre_conf,          /* preconfiguration (4) */
-    NULL,                           /* postconfiguration (9) */
+    NULL,                           /* preconfiguration (4) */
+    ngx_http_env_post_conf,         /* postconfiguration (9) */
 
     NULL,                           /* create main configuration (1) */
     NULL,                           /* init main configuration (6) */
