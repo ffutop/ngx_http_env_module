@@ -34,18 +34,35 @@ static ngx_command_t ngx_http_env_commands[] = {
     ngx_null_command
 };
 
+static ngx_int_t ngx_http_env_handler(ngx_http_request_t *r) {
+
+    /* TODO: */
+
+    return NGX_OK;
+}
+
+static ngx_int_t ngx_http_env_pre_conf(ngx_conf_t *cf) {
+    ngx_http_core_loc_conf_t *clcf;
+
+    clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
+    clcf->handler = ngx_http_env_handler;
+    return NGX_OK;
+}
+
 static ngx_http_module_t ngx_http_env_module_ctx = {
-    NULL,                           /* preconfiguration */
-    NULL,                           /* postconfiguration */
+    ngx_http_env_pre_conf,          /* preconfiguration (4) */
+    NULL,                           /* postconfiguration (9) */
 
-    NULL,                           /* create main configuration */
-    NULL,                           /* init main configuration */
+    NULL,                           /* create main configuration (1) */
+    NULL,                           /* init main configuration (6) */
 
-    ngx_http_env_create_srv_conf,   /* create server configuration */
-    ngx_http_env_merge_srv_conf,    /* merge server configuration */
+    ngx_http_env_create_srv_conf,   /* create server configuration (2) */
+    ngx_http_env_merge_srv_conf,    /* merge server configuration (7) */
 
-    NULL,                           /* create location configuration */
-    NULL                            /* merge location configuration */
+    NULL,                           /* create location configuration (3) */
+    NULL                            /* merge location configuration (8) */
+
+        /* parse conf via ngx_command_t[] (5) */
 };
 
 ngx_module_t ngx_http_env_module = {
