@@ -37,6 +37,7 @@ static ngx_command_t ngx_http_env_commands[] = {
 ngx_int_t ngx_http_env_handler(ngx_http_request_t *r) {
 
     /* TODO: */
+    ngx_log_error(NGX_LOG_INFO, r->connection->log, 0, "env handler");
     return NGX_OK;
 }
 
