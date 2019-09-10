@@ -2,19 +2,19 @@
  * Developed By ffutop.
  *
  *   Client                                Nginx                        Server
- *     
- *             Cookie: stg_token                        token    
+ *
+ *             Cookie: stg_token                        token
  *  env:stg <---------------------------- NGX Module <------------- backend server(stg)
  *
  *             Cookie: token                            token
  *  env:pro <----------------------------            <------------- backend server(pro)
  *
- * action: set cookie
+ * action 1: set cookie
  * -----------------------------------------------------------------------------
- * action: request with cookie
+ * action 2: request with cookie
  *
  *             Cookie: stg_token                        token
- *  env:stg ----------------------------> NGX Module -------------> backend server(stg) 
+ *  env:stg ----------------------------> NGX Module -------------> backend server(stg)
  *             Cookie: token                           (ignore)
  *
  *             Cookie: stg_token                   stg_token(ignored by server)
@@ -30,6 +30,8 @@ static ngx_http_output_header_filter_pt ngx_http_next_header_filter;
 
 typedef struct {
     ngx_str_t deployment_env;
+    ngx_str_t src_cookie;
+    ngx_str_t dst_cookie;
 } ngx_http_env_srv_conf_t;
 
 static void * ngx_http_env_create_srv_conf(ngx_conf_t *cf) {
@@ -46,34 +48,50 @@ static char * ngx_http_env_merge_srv_conf(ngx_conf_t *cf, void *parent, void *ch
     ngx_http_env_srv_conf_t *prev = parent;
     ngx_http_env_srv_conf_t *conf = child;
     ngx_conf_merge_str_value(conf->deployment_env, prev->deployment_env, "");
-    ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "merge srv conf");
+    ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "merge srv conf. %V:%V", &prev->src_cookie, &prev->dst_cookie);
     return NGX_CONF_OK;
 }
 
-static ngx_command_t ngx_http_env_commands[] = {
-    { ngx_string("deployment_env"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_str_slot,
-      NGX_HTTP_SRV_CONF_OFFSET,
-      offsetof(ngx_http_env_srv_conf_t, deployment_env),
-      NULL},
-    ngx_null_command
-};
+static char * ngx_http_env_rewrite_cookie_parse(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
+    ngx_http_env_srv_conf_t *escf;
+    ngx_str_t *value;
 
-ngx_int_t ngx_http_env_handler(ngx_http_request_t *r) {
-
-    /* TODO: */
-    ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "env handler");
-    return NGX_OK;
+    escf = conf;
+    value = cf->args->elts;
+    escf->src_cookie = value[1];
+    escf->dst_cookie = value[2];
+    return NGX_CONF_OK;
 }
 
+/* env handler for action 2 */
+ngx_int_t ngx_http_env_handler(ngx_http_request_t *r) {
+    ngx_table_elt_t **cookies;
+    ngx_str_t value;
+    char *pos;
+
+    /* TODO: */
+    cookies = r->headers_in.cookies.elts;
+    ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "env handler. %V", &cookies[0]->value);
+    ngx_str_set(&cookies[0]->value, "token=fangfeng");
+    value = cookies[0]->value;
+
+    pos = ngx_strstr(value.data, ";token");
+    if (pos != NULL) {
+        ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "env handler. got \"token\"");
+    }
+
+    return NGX_DECLINED;
+}
+
+/* header filter for action 1 */
 ngx_int_t ngx_http_env_header_filter(ngx_http_request_t *r) {
     ngx_array_t *cookies;
-    
-    cookies = r->headers_in->cookies;
+
+    cookies = &r->headers_in.cookies;
+    ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "env header filter.");
     /* TODO: */
-    for (int i=0;i<cookies->nelts;i++) {
-        ngx_log_error(NGX_LOG_WARN, cf, 0, "env header filter. Cookie: %V", (ngx_str_t *) (cookies->elts + i));
+    for (ngx_uint_t i=0;i<cookies->nelts;i++) {
+        ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "env header filter. Cookie: %V", (ngx_str_t *) cookies->elts + i);
     }
     return ngx_http_next_header_filter(r);
 }
@@ -84,7 +102,8 @@ static ngx_int_t ngx_http_env_post_conf(ngx_conf_t *cf) {
 
     /* register handler */
     cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
-    h = ngx_array_push(&cmcf->phases[NGX_HTTP_CONTENT_PHASE].handlers);
+    /*h = ngx_array_push(&cmcf->phases[NGX_HTTP_CONTENT_PHASE].handlers);*/
+    h = ngx_array_push(&cmcf->phases[NGX_HTTP_REWRITE_PHASE].handlers);
     if (h == NULL) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "failed to register env handler");
         return NGX_ERROR;
@@ -98,6 +117,22 @@ static ngx_int_t ngx_http_env_post_conf(ngx_conf_t *cf) {
 
     return NGX_OK;
 }
+
+static ngx_command_t ngx_http_env_commands[] = {
+    { ngx_string("deployment_env"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_str_slot,
+      NGX_HTTP_SRV_CONF_OFFSET,
+      offsetof(ngx_http_env_srv_conf_t, deployment_env),
+      NULL},
+    { ngx_string("env_rewrite_cookie"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_TAKE2,
+      ngx_http_env_rewrite_cookie_parse,
+      NGX_HTTP_SRV_CONF_OFFSET,
+      0,
+      NULL},
+    ngx_null_command
+};
 
 static ngx_http_module_t ngx_http_env_module_ctx = {
     NULL,                           /* preconfiguration (4) */
