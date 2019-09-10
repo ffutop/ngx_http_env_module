@@ -38,7 +38,7 @@ static void * ngx_http_env_create_srv_conf(ngx_conf_t *cf) {
     if (conf == NULL) {
         return NULL;
     }
-    ngx_conf_log_error(NGX_LOG_INFO, cf, 0, "init srv conf");
+    ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "init srv conf");
     return conf;
 }
 
@@ -46,7 +46,7 @@ static char * ngx_http_env_merge_srv_conf(ngx_conf_t *cf, void *parent, void *ch
     ngx_http_env_srv_conf_t *prev = parent;
     ngx_http_env_srv_conf_t *conf = child;
     ngx_conf_merge_str_value(conf->deployment_env, prev->deployment_env, "");
-    ngx_conf_log_error(NGX_LOG_INFO, cf, 0, "merge srv conf");
+    ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "merge srv conf");
     return NGX_CONF_OK;
 }
 
@@ -63,7 +63,7 @@ static ngx_command_t ngx_http_env_commands[] = {
 ngx_int_t ngx_http_env_handler(ngx_http_request_t *r) {
 
     /* TODO: */
-    ngx_log_error(NGX_LOG_INFO, r->connection->log, 0, "env handler");
+    ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "env handler");
     return NGX_OK;
 }
 
