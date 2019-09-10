@@ -1,6 +1,32 @@
+/**
+ * Developed By ffutop.
+ *
+ *   Client                                Nginx                        Server
+ *     
+ *             Cookie: stg_token                        token    
+ *  env:stg <---------------------------- NGX Module <------------- backend server(stg)
+ *
+ *             Cookie: token                            token
+ *  env:pro <----------------------------            <------------- backend server(pro)
+ *
+ * action: set cookie
+ * -----------------------------------------------------------------------------
+ * action: request with cookie
+ *
+ *             Cookie: stg_token                        token
+ *  env:stg ----------------------------> NGX Module -------------> backend server(stg) 
+ *             Cookie: token                           (ignore)
+ *
+ *             Cookie: stg_token                   stg_token(ignored by server)
+ *  env:pro ---------------------------->            --------------> backend server(pro)
+ *             Cookie: token                            token
+ */
+
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_http.h>
+
+static ngx_http_output_header_filter_pt ngx_http_next_header_filter;
 
 typedef struct {
     ngx_str_t deployment_env;
@@ -41,16 +67,35 @@ ngx_int_t ngx_http_env_handler(ngx_http_request_t *r) {
     return NGX_OK;
 }
 
+ngx_int_t ngx_http_env_header_filter(ngx_http_request_t *r) {
+    ngx_array_t *cookies;
+    
+    cookies = r->headers_in->cookies;
+    /* TODO: */
+    for (int i=0;i<cookies->nelts;i++) {
+        ngx_log_error(NGX_LOG_WARN, cf, 0, "env header filter. Cookie: %V", (ngx_str_t *) (cookies->elts + i));
+    }
+    return ngx_http_next_header_filter(r);
+}
+
 static ngx_int_t ngx_http_env_post_conf(ngx_conf_t *cf) {
     ngx_http_core_main_conf_t *cmcf;
     ngx_http_handler_pt *h;
 
+    /* register handler */
     cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
     h = ngx_array_push(&cmcf->phases[NGX_HTTP_CONTENT_PHASE].handlers);
     if (h == NULL) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "failed to register env handler");
         return NGX_ERROR;
     }
+    ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "env post config");
     *h = ngx_http_env_handler;
+
+    /* register header filter */
+    ngx_http_next_header_filter = ngx_http_top_header_filter;
+    ngx_http_top_header_filter = ngx_http_env_header_filter;
+
     return NGX_OK;
 }
 
