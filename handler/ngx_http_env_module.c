@@ -46,7 +46,7 @@ static ngx_command_t ngx_http_env_commands[] = {
       NGX_HTTP_SRV_CONF_OFFSET,
       offsetof(ngx_http_env_srv_conf_t, env),
       NULL},
-    { ngx_string("env_rewrite_cookie"),
+    { ngx_string("env_rewrite_cookie_in"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_TAKE2,
       ngx_http_env_rewrite_cookie_parse,
       NGX_HTTP_SRV_CONF_OFFSET,
@@ -194,7 +194,6 @@ static ngx_int_t ngx_http_env_handler(ngx_http_request_t *r) {
     ngx_table_elt_t *cookie;
     ngx_uint_t nelts;
 
-    /* TODO: */
     cookies = r->headers_in.cookies.elts;
     nelts = r->headers_in.cookies.nelts;
     for (ngx_uint_t i=0;i<nelts;i++) {
@@ -211,12 +210,13 @@ static ngx_int_t ngx_http_env_post_conf(ngx_conf_t *cf) {
     ngx_http_env_srv_conf_t *escf;
     ngx_http_handler_pt *h;
 
-    /* register handler */
+    /* check enable handler or not */
     escf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_env_module);
     if (escf->env.len == 0) {
         return NGX_OK;
     }
 
+    /* register handler */
     cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
     h = ngx_array_push(&cmcf->phases[NGX_HTTP_REWRITE_PHASE].handlers);
     if (h == NULL) {
