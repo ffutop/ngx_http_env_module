@@ -66,13 +66,17 @@ make build install
 ## 使用
 
 > Syntax: `env_rewrite_cookie_in` `OUTER_COOKIE_KEY` `INNER_COOKIE_KEY`
+>
 > Default: -
+>
 > Context: http, server
 
 针对请求头携带的 Cookie，如果 Cookie 的键匹配 `OUTER_COOKIE_KEY`，则将其改写成 `INNER_COOKIE_KEY`，再执行后续逻辑(例如发送反向代理请求)
 
 > Syntax: `env_rewrite_cookie_out` `OUTER_COOKIE_KEY` `INNER_COOKIE_KEY`
+>
 > Default: -
+>
 > Context: http, server
 
 针对响应头携带的 Set-Cookie，如果 Set-Cookie 的 Cookie 键匹配 `INNER_COOKIE_KEY`， 则将其改写成 `OUTER_COOKIE_KEY`，再向客户端发送响应头。
