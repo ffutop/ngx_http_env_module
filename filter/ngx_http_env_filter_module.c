@@ -140,8 +140,8 @@ static ngx_int_t ngx_http_env_header_filter(ngx_http_request_t *r) {
 
         ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "env filter. %V:=%V", &header[i].key, &header[i].value);
         ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "env filter. %V, %d", &str_set_cookie, str_set_cookie.len);
-        if (ngx_strncmp(&(header[i].key.data), &str_set_cookie.data, str_set_cookie.len) == 0) {
-            escf = ngx_http_conf_get_module_srv_conf(r, ngx_http_env_filter_module);
+        if (ngx_strncmp(header[i].key.data, str_set_cookie.data, str_set_cookie.len) == 0) {
+            escf = ngx_http_get_module_srv_conf(r, ngx_http_env_filter_module);
             ngx_http_env_rewrite_cookie(r, &header[i].value, &escf->inner_cookie, &escf->outer_cookie);
         }
     }
