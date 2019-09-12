@@ -121,6 +121,7 @@ static ngx_int_t ngx_http_env_remove_cookie(ngx_http_request_t *r, ngx_str_t *co
     u_char *head, *tail;
     ngx_uint_t len, h_cursor, t_cursor;
 
+    ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "remove handler. cookie: %V, pattern: %V", cookie, pattern);
     len = cookie->len;
     for (h_cursor=0, head=cookie->data;h_cursor<len;h_cursor++, head++) {
         /* escape blankspace */
@@ -136,9 +137,9 @@ static ngx_int_t ngx_http_env_remove_cookie(ngx_http_request_t *r, ngx_str_t *co
                 tail ++;
                 t_cursor++;
                 ngx_memcpy(head, tail, len - t_cursor);
-                cookie->len = cookie->len - (t_cursor-h_cursor);
-                return NGX_DECLINED;
             }
+            cookie->len = cookie->len - (t_cursor-h_cursor);
+            return NGX_DECLINED;
         }
         /* escape this cookie until ';' */
         for (;h_cursor<cookie->len && *head != ';';h_cursor++, head++);
@@ -181,6 +182,7 @@ static ngx_int_t ngx_http_env_rewrite_handler(ngx_http_request_t *r, ngx_str_t *
     escf = ngx_http_get_module_srv_conf(r, ngx_http_env_module);
     outer_cookie = &escf->outer_cookie;
     inner_cookie = &escf->inner_cookie;
+    ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "rewrite handler. outer: %V, inner: %V", outer_cookie, inner_cookie);
 
     ngx_http_env_remove_cookie(r, cookie, inner_cookie);
     ngx_http_env_rewrite_cookie(r, cookie, outer_cookie, inner_cookie);
