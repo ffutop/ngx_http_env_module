@@ -90,9 +90,9 @@ static void * ngx_http_env_create_srv_conf(ngx_conf_t *cf) {
     ngx_http_env_srv_conf_t *conf;
     conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_env_srv_conf_t));
     if (conf == NULL) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "create ngx_http_env_srv_conf_t failed while alloc memory.");
         return NULL;
     }
-    ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "init srv conf, conf: %p", (void *) conf);
     return conf;
 }
 
@@ -101,7 +101,6 @@ static char * ngx_http_env_merge_srv_conf(ngx_conf_t *cf, void *parent, void *ch
     ngx_http_env_srv_conf_t *conf = child;
     ngx_conf_merge_str_value(conf->outer_cookie, prev->outer_cookie, "");
     ngx_conf_merge_str_value(conf->inner_cookie, prev->inner_cookie, "");
-    ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "merge srv conf. %V:%V. parent: %p, child: %p", &prev->outer_cookie, &prev->inner_cookie, parent, child);
     return NGX_CONF_OK;
 }
 
@@ -113,7 +112,6 @@ static char * ngx_http_env_rewrite_cookie_parse(ngx_conf_t *cf, ngx_command_t *c
     value = cf->args->elts;
     escf->outer_cookie = value[1];
     escf->inner_cookie = value[2];
-    ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "parse srv conf. %V:%V. conf: %p", &escf->outer_cookie, &escf->inner_cookie, (void *) escf);
     return NGX_CONF_OK;
 }
 
@@ -121,7 +119,6 @@ static ngx_int_t ngx_http_env_remove_cookie(ngx_http_request_t *r, ngx_str_t *co
     u_char *head, *tail;
     ngx_uint_t len, h_cursor, t_cursor;
 
-    ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "remove handler. cookie: %V, pattern: %V", cookie, pattern);
     len = cookie->len;
     for (h_cursor=0, head=cookie->data;h_cursor<len;h_cursor++, head++) {
         /* escape blankspace */
@@ -182,7 +179,6 @@ static ngx_int_t ngx_http_env_rewrite_handler(ngx_http_request_t *r, ngx_str_t *
     escf = ngx_http_get_module_srv_conf(r, ngx_http_env_module);
     outer_cookie = &escf->outer_cookie;
     inner_cookie = &escf->inner_cookie;
-    ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "rewrite handler. outer: %V, inner: %V", outer_cookie, inner_cookie);
 
     ngx_http_env_remove_cookie(r, cookie, inner_cookie);
     ngx_http_env_rewrite_cookie(r, cookie, outer_cookie, inner_cookie);
@@ -200,9 +196,9 @@ static ngx_int_t ngx_http_env_handler(ngx_http_request_t *r) {
     nelts = r->headers_in.cookies.nelts;
     for (ngx_uint_t i=0;i<nelts;i++) {
         cookie = cookies[i];
-        ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "env handler. before: %V", &cookie->value);
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "Cookie before ngx_http_env_handler: %V", &cookie->value);
         ngx_http_env_rewrite_handler(r, &cookie->value);
-        ngx_log_error(NGX_LOG_WARN, r->connection->log, 0, "env handler. after : %V", &cookie->value);
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "Cookie after ngx_http_env_handler: %V", &cookie->value);
     }
     return NGX_DECLINED;
 }
@@ -225,7 +221,6 @@ static ngx_int_t ngx_http_env_post_conf(ngx_conf_t *cf) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "failed to register env handler");
         return NGX_ERROR;
     }
-    ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "env post config");
     *h = ngx_http_env_handler;
 
     return NGX_OK;
