@@ -89,6 +89,7 @@ ngx_module_t ngx_http_env_module = {
 static void * ngx_http_env_create_srv_conf(ngx_conf_t *cf) {
     ngx_http_env_srv_conf_t *conf;
     conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_env_srv_conf_t));
+    ngx_log_debug1(NGX_LOG_DEBUG, cf->log, 0, "create new env srv config at %p", conf);
     if (conf == NULL) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "create ngx_http_env_srv_conf_t failed while alloc memory.");
         return NULL;
@@ -101,6 +102,7 @@ static char * ngx_http_env_merge_srv_conf(ngx_conf_t *cf, void *parent, void *ch
     ngx_http_env_srv_conf_t *conf = child;
     ngx_conf_merge_str_value(conf->outer_cookie, prev->outer_cookie, "");
     ngx_conf_merge_str_value(conf->inner_cookie, prev->inner_cookie, "");
+    ngx_log_debug2(NGX_LOG_DEBUG, cf->log, 0, "merge env srv config from %p to %p.", parent, child);
     return NGX_CONF_OK;
 }
 
@@ -147,7 +149,7 @@ static ngx_int_t ngx_http_env_remove_cookie(ngx_http_request_t *r, ngx_str_t *co
 static ngx_int_t ngx_http_env_rewrite_cookie(ngx_http_request_t *r, ngx_str_t *cookie, ngx_str_t *from_cookie, ngx_str_t *to_cookie) {
     u_char *head, *new_cookie_data;
     ngx_uint_t len, cursor;
-    
+
     len = cookie->len;
     for (cursor=0, head=cookie->data;cursor<len;cursor++, head++) {
         /* escape blankspace */
@@ -180,9 +182,11 @@ static ngx_int_t ngx_http_env_rewrite_handler(ngx_http_request_t *r, ngx_str_t *
     outer_cookie = &escf->outer_cookie;
     inner_cookie = &escf->inner_cookie;
 
-    ngx_http_env_remove_cookie(r, cookie, inner_cookie);
-    ngx_http_env_rewrite_cookie(r, cookie, outer_cookie, inner_cookie);
-    
+    if (outer_cookie->len > 0) {
+        ngx_http_env_remove_cookie(r, cookie, inner_cookie);
+        ngx_http_env_rewrite_cookie(r, cookie, outer_cookie, inner_cookie);
+    }
+
     return NGX_DECLINED;
 }
 
@@ -205,14 +209,7 @@ static ngx_int_t ngx_http_env_handler(ngx_http_request_t *r) {
 
 static ngx_int_t ngx_http_env_post_conf(ngx_conf_t *cf) {
     ngx_http_core_main_conf_t *cmcf;
-    ngx_http_env_srv_conf_t *escf;
     ngx_http_handler_pt *h;
-
-    /* check enable handler or not */
-    escf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_env_module);
-    if (escf->env.len == 0) {
-        return NGX_OK;
-    }
 
     /* register handler */
     cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
@@ -222,6 +219,7 @@ static ngx_int_t ngx_http_env_post_conf(ngx_conf_t *cf) {
         return NGX_ERROR;
     }
     *h = ngx_http_env_handler;
+    ngx_conf_log_error(NGX_LOG_INFO, cf, 0, "ngx http env handler installed!");
 
     return NGX_OK;
 }

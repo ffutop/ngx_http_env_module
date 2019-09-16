@@ -89,7 +89,7 @@ static char * ngx_http_env_rewrite_cookie_parse(ngx_conf_t *cf, ngx_command_t *c
 static ngx_int_t ngx_http_env_rewrite_cookie(ngx_http_request_t *r, ngx_str_t *cookie, ngx_str_t *from_cookie, ngx_str_t *to_cookie) {
     u_char *head, *new_cookie_data;
     ngx_uint_t len, cursor;
-    
+
     len = cookie->len;
     for (cursor=0, head=cookie->data;cursor<len;cursor++, head++) {
         /* escape blankspace */
@@ -121,6 +121,10 @@ static ngx_int_t ngx_http_env_header_filter(ngx_http_request_t *r) {
     ngx_uint_t i;
     ngx_table_elt_t *header;
 
+    escf = ngx_http_get_module_srv_conf(r, ngx_http_env_filter_module);
+    if (escf->outer_cookie.len <= 0) {
+        return ngx_http_next_header_filter(r);
+    }
     headers = &r->headers_out.headers;
     part = &headers->part;
     header = part->elts;
@@ -135,7 +139,6 @@ static ngx_int_t ngx_http_env_header_filter(ngx_http_request_t *r) {
         }
 
         if (ngx_strncmp(header[i].key.data, str_set_cookie.data, str_set_cookie.len) == 0) {
-            escf = ngx_http_get_module_srv_conf(r, ngx_http_env_filter_module);
             ngx_http_env_rewrite_cookie(r, &header[i].value, &escf->inner_cookie, &escf->outer_cookie);
         }
     }
@@ -143,13 +146,6 @@ static ngx_int_t ngx_http_env_header_filter(ngx_http_request_t *r) {
 }
 
 static ngx_int_t ngx_http_env_filter_post_conf(ngx_conf_t *cf) {
-
-    ngx_http_env_filter_srv_conf_t *escf;
-    escf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_env_filter_module);
-    if (escf->inner_cookie.len == 0) {
-        return NGX_OK;
-    }
-
     ngx_str_set(&str_set_cookie, "Set-Cookie");
     /* register header filter */
     ngx_http_next_header_filter = ngx_http_top_header_filter;
